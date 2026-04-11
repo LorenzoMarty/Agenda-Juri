@@ -1,169 +1,64 @@
-# Agenda Juri
+# Agenda-Juri
 
-Aplicação jurídica com frontend React/Vite em `frontend/` e backend Django em `backend/`.
+Sistema desenvolvido para facilitar a rotina de um escritório de advocacia, com gerenciamento de clientes, processos e compromissos.
 
-O fluxo atual usa o Django como API, Supabase Postgres como banco do backend e Vercel para publicar backend e frontend em projetos separados.
+## Funcionalidades
 
-## Estrutura
+- Gestão de clientes
+- Gestão de processos
+- Gestão de compromissos
+- Agenda de compromissos
+- Sistema de autenticação
+- Dashboard enxuto e personalizável
 
-- `frontend/`: aplicação React/Vite. Consome a API via `VITE_API_URL`.
-- `backend/`: projeto Django com endpoints JSON, admin e configuração para `DATABASE_URL` ou `POSTGRES_URL`.
+## Diferencial
 
-## Banco Supabase
+O sistema foi pensado para:
 
-Crie um projeto no Supabase e copie a connection string do Postgres em Project Dashboard > Connect. Se voce conectou o Supabase pelo painel da Vercel, a integracao normalmente cria `POSTGRES_URL`; o backend tambem aceita `DATABASE_URL` quando voce configura a URL manualmente.
+- Aplicação prática do Direito
+- Interface intuitiva e moderna
+- Integração com demais ferramentas como: Google agenda
 
-Para deploy serverless na Vercel, prefira a string do pooler em Transaction mode e mantenha `sslmode=require` na URL. O backend também desativa prepared statements na conexão, porque o Transaction pooler do Supabase não aceita prepared statements.
+## Arquitetura
 
-Exemplo de formato:
+Fluxos principal:
 
-```text
-postgresql://postgres.project-ref:senha@aws-0-sa-east-1.pooler.supabase.com:6543/postgres?sslmode=require
+1. O usuário loga na sua conta
+2. Um cliente é criado
+3. Um processo para um cliente é criado
+4. Um evento do processo é salvo na agenda
+5. As informações ficam disponíveis centralizadas no dashboard ou em páginas separadas por categoria.
+
+## Instalação
+
+```bash
+git clone https://github.com/LorenzoMarty/Agenda-Juri.git
+cd Agenda-Juri
+python -m venv .venv
+
+# Windows
+.venv\Scripts\activate
+
+# Linux/macOS
+source .venv/bin/activate
+
+pip install -r requirements.txt
 ```
 
-Nunca coloque `DATABASE_URL` ou `POSTGRES_URL` no frontend.
+## Executando o projeto
 
-## Rodar localmente
-
-Backend:
-
-```powershell
-cd backend
-uv sync
-$env:DATABASE_URL="sua-url-do-supabase"
-$env:SECRET_KEY="uma-chave-local"
-$env:DEBUG="true"
-$env:ALLOWED_HOSTS="127.0.0.1,localhost"
-$env:CORS_ALLOWED_ORIGINS="http://localhost:5173,http://127.0.0.1:5173"
-uv run python manage.py migrate
-uv run python manage.py seed_demo
-uv run python manage.py runserver
+```bash
+python manage.py runserver
 ```
 
-Frontend:
+## Tecnologias
 
-```powershell
-cd frontend
-npm install
-$env:VITE_API_URL="http://127.0.0.1:8000"
-npm run dev
-```
+- Python
+- Django
+- PostgreeSQL
+- HTML, CSS, JS
 
-Login demo após `seed_demo`:
+## Autor
 
-```text
-Email: renata@rsadvocacia.com
-Senha: 123456
-```
-
-Sem `VITE_API_URL`, o frontend ainda abre com dados locais em memória. Com `VITE_API_URL`, ele chama os endpoints Django.
-
-## Endpoints Django
-
-Os endpoints abaixo são uma camada CRUD simples para integrar a interface. Antes de usar com dados sensíveis em produção, adicione autenticação/autorização server-side; CORS e login client-side não substituem controle de acesso no backend.
-
-- `GET /api/bootstrap/`
-- `POST /api/auth/login/`
-- `GET|POST /api/clients/`
-- `GET|PUT|PATCH|DELETE /api/clients/<id>/`
-- `GET|POST /api/processes/`
-- `GET|PUT|PATCH|DELETE /api/processes/<id>/`
-- `GET|POST /api/events/`
-- `GET|PUT|PATCH|DELETE /api/events/<id>/`
-- `GET|POST /api/users/`
-- `GET|PUT|PATCH|DELETE /api/users/<id>/`
-- `GET|POST /api/roles/`
-- `GET|PUT|PATCH|DELETE /api/roles/<id>/`
-
-## Deploy do backend na Vercel
-
-Crie primeiro o projeto do backend.
-
-| Campo | Valor |
-| --- | --- |
-| Root Directory | `backend` |
-| Framework Preset | `Other` |
-| Build Command | definido em `backend/vercel.json` |
-
-Configure estas variáveis no projeto do backend na Vercel:
-
-```text
-SECRET_KEY=uma-chave-segura
-DEBUG=false
-POSTGRES_URL=sua-url-do-supabase
-DATABASE_CONN_MAX_AGE=0
-ALLOWED_HOSTS=seu-backend.vercel.app
-CORS_ALLOWED_ORIGINS=https://seu-frontend.vercel.app
-CSRF_TRUSTED_ORIGINS=https://seu-backend.vercel.app
-```
-
-Se a integracao do Supabase ja criou `POSTGRES_URL`, nao precisa criar `DATABASE_URL`. Se existir um `DATABASE_URL` antigo começando com `https://`, remova ou corrija essa variavel, porque `DATABASE_URL` deve ser uma connection string Postgres, começando com `postgres://` ou `postgresql://`.
-
-Deploy pela CLI:
-
-```powershell
-npx vercel@latest --cwd backend
-npx vercel@latest --cwd backend --prod
-```
-
-Depois do deploy do backend, aplique as migrações no Supabase usando a mesma connection string Postgres:
-
-```powershell
-cd backend
-$env:DATABASE_URL="sua-url-do-supabase"
-$env:SECRET_KEY="uma-chave-segura"
-$env:DEBUG="false"
-$env:ALLOWED_HOSTS="seu-backend.vercel.app"
-uv run python manage.py migrate
-uv run python manage.py seed_demo
-uv run python manage.py createsuperuser
-```
-
-Teste:
-
-```text
-https://seu-backend.vercel.app/api/bootstrap/
-```
-
-## Deploy do frontend na Vercel
-
-Crie um segundo projeto para a interface.
-
-| Campo | Valor |
-| --- | --- |
-| Root Directory | `frontend` |
-| Framework Preset | `Vite` |
-| Install Command | `npm install` |
-| Build Command | `npm run build` |
-| Output Directory | `dist` |
-
-Configure no projeto do frontend:
-
-```text
-VITE_API_URL=https://seu-backend.vercel.app
-```
-
-Deploy pela CLI:
-
-```powershell
-npx vercel@latest --cwd frontend
-npx vercel@latest --cwd frontend --prod
-```
-
-O app usa `HashRouter`, então rotas internas ficam com `#/`, por exemplo:
-
-```text
-https://seu-frontend.vercel.app/#/clientes
-```
-
-## Checklist
-
-- Supabase criado e connection string Postgres copiada do Transaction pooler ou criada pela integração da Vercel em `POSTGRES_URL`.
-- Backend publicado com `Root Directory` em `backend`.
-- Backend com `SECRET_KEY`, `POSTGRES_URL` ou `DATABASE_URL`, `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS` e `CSRF_TRUSTED_ORIGINS`.
-- `uv run python manage.py migrate` aplicado no Supabase.
-- `uv run python manage.py seed_demo` aplicado ou usuário admin criado.
-- Frontend publicado com `Root Directory` em `frontend`.
-- Frontend com `VITE_API_URL` apontando para a URL do backend.
-- `/api/bootstrap/` responde na URL pública do backend.
-- Login, dashboard, clientes, processos, agenda, usuários e cargos testados no frontend publicado.
+**Lorenzo Marty**\
+Github: https://github.com/LorenzoMarty
